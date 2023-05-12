@@ -235,7 +235,10 @@ namespace TimeScreensaver
                 }
                 else
                 {
-                    Cursor = Cursors.Arrow;
+                    if(IsLeftMouseDown)
+                        Cursor = Cursors.SizeAll;
+                    else
+                        Cursor = Cursors.Arrow;
                     MouseDirection = MouseDirection.None;
                 }
                 #endregion
