@@ -6,6 +6,9 @@ namespace TimeScreensaver
 {
     public partial class TimeScreensaver : Form
     {
+        // 是否锁定
+        private bool IsLock = false;
+
         // 是否暂停
         private bool IsPause = false;
 
@@ -65,12 +68,23 @@ namespace TimeScreensaver
                     else
                         IsPause = true;
                     break;
-                // 回车：菜单栏
+                // 回车：切换锁定
                 case Keys.Enter:
-                    if (FormBorderStyle == FormBorderStyle.Sizable)
-                        FormBorderStyle = FormBorderStyle.None;
+                    #region 已实现无边框状态下的缩放以及拖拽，此功能已不需要，将其改为切换锁定功能
+                    //if (FormBorderStyle == FormBorderStyle.Sizable)
+                    //    FormBorderStyle = FormBorderStyle.None;
+                    //else
+                    //    FormBorderStyle = FormBorderStyle.Sizable;
+                    #endregion
+
+                    if (IsLock)
+                        IsLock = false;
                     else
-                        FormBorderStyle = FormBorderStyle.Sizable;
+                    {
+                        IsLock = true;
+                        // 锁定时，鼠标光标恢复默认图标
+                        Cursor = Cursors.Arrow;
+                    }
                     break;
                 // F11：全屏
                 case Keys.F11:
@@ -90,7 +104,7 @@ namespace TimeScreensaver
                     break;
                 // Tab：切换主题
                 case Keys.Tab:
-                    if (++GlobalVariable.Settings.ThemeColorIndex >= GlobalVariable.Settings.ThemeColors.Count)
+                    if (++GlobalVariable.Settings.ThemeColorIndex > GlobalVariable.Settings.ThemeColors.Count)
                     {
                         GlobalVariable.Settings.ThemeColorIndex = 1;
                     }
@@ -157,72 +171,75 @@ namespace TimeScreensaver
 
         private void TimeScreensaver_MouseMove(object sender, MouseEventArgs e)
         {
-            #region 拖拽缩放窗口以及移动窗口
-            if (IsLeftMouseDown)
+            if (!IsLock)
             {
-                // 拖拽缩放窗口
-                if (MouseDirection != MouseDirection.None)
+                #region 拖拽缩放窗口以及移动窗口
+                if (IsLeftMouseDown)
                 {
-                    //设定好方向后，调用下面方法，改变窗体大小  
-                    ResizeForm();
-                    return;
+                    // 拖拽缩放窗口
+                    if (MouseDirection != MouseDirection.None)
+                    {
+                        //设定好方向后，调用下面方法，改变窗体大小  
+                        ResizeForm();
+                        return;
+                    }
+                    // 拖拽移动窗口
+                    else
+                    {
+                        Left += e.X - LeftMouseDownPoint.X;
+                        Top += e.Y - LeftMouseDownPoint.Y;
+                    }
                 }
-                // 拖拽移动窗口
+                #endregion
+
+                #region 鼠标在窗口边缘显示为缩放图标，并记录鼠标方向，用于拖拽缩放窗口
+                if (e.Location.X <= 5 && e.Location.Y <= 5)
+                {
+                    Cursor = Cursors.SizeNWSE;
+                    MouseDirection = MouseDirection.TopLeft;
+                }
+                else if (e.Location.X >= Width - 5 && e.Location.Y <= 5)
+                {
+                    Cursor = Cursors.SizeNESW;
+                    MouseDirection = MouseDirection.TopRight;
+                }
+                else if (e.Location.X <= 5 && e.Location.Y >= Height - 5)
+                {
+                    Cursor = Cursors.SizeNESW;
+                    MouseDirection = MouseDirection.BottomLeft;
+                }
+                else if (e.Location.X >= Width - 5 && e.Location.Y >= Height - 5)
+                {
+                    Cursor = Cursors.SizeNWSE;
+                    MouseDirection = MouseDirection.BottomRight;
+                }
+                else if (e.Location.Y <= 5)
+                {
+                    Cursor = Cursors.SizeNS;
+                    MouseDirection = MouseDirection.Top;
+                }
+                else if (e.Location.X <= 5)
+                {
+                    Cursor = Cursors.SizeWE;
+                    MouseDirection = MouseDirection.Left;
+                }
+                else if (e.Location.Y >= Height - 5)
+                {
+                    Cursor = Cursors.SizeNS;
+                    MouseDirection = MouseDirection.Bottom;
+                }
+                else if (e.Location.X >= Width - 5)
+                {
+                    Cursor = Cursors.SizeWE;
+                    MouseDirection = MouseDirection.Right;
+                }
                 else
                 {
-                    Left += e.X - LeftMouseDownPoint.X;
-                    Top += e.Y - LeftMouseDownPoint.Y;
+                    Cursor = Cursors.Arrow;
+                    MouseDirection = MouseDirection.None;
                 }
+                #endregion
             }
-            #endregion
-
-            #region 鼠标在窗口边缘显示为缩放图标，并记录鼠标方向，用于拖拽缩放窗口
-            if (e.Location.X <= 5 && e.Location.Y <= 5)
-            {
-                Cursor = Cursors.SizeNWSE;
-                MouseDirection = MouseDirection.TopLeft;
-            }
-            else if (e.Location.X >= Width - 5 && e.Location.Y <= 5)
-            {
-                Cursor = Cursors.SizeNESW;
-                MouseDirection = MouseDirection.TopRight;
-            }
-            else if (e.Location.X <= 5 && e.Location.Y >= Height - 5)
-            {
-                Cursor = Cursors.SizeNESW;
-                MouseDirection = MouseDirection.BottomLeft;
-            }
-            else if (e.Location.X >= Width - 5 && e.Location.Y >= Height - 5)
-            {
-                Cursor = Cursors.SizeNWSE;
-                MouseDirection = MouseDirection.BottomRight;
-            }
-            else if (e.Location.Y <= 5)
-            {
-                Cursor = Cursors.SizeNS;
-                MouseDirection = MouseDirection.Top;
-            }
-            else if (e.Location.X <= 5)
-            {
-                Cursor = Cursors.SizeWE;
-                MouseDirection = MouseDirection.Left;
-            }
-            else if (e.Location.Y >= Height - 5)
-            {
-                Cursor = Cursors.SizeNS;
-                MouseDirection = MouseDirection.Bottom;
-            }
-            else if (e.Location.X >= Width - 5)
-            {
-                Cursor = Cursors.SizeWE;
-                MouseDirection = MouseDirection.Right;
-            }
-            else
-            {
-                Cursor = Cursors.Arrow;
-                MouseDirection = MouseDirection.None;
-            }
-            #endregion
         }
 
         protected override void OnSizeChanged(EventArgs e)
