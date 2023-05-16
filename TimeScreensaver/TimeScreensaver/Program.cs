@@ -1,5 +1,3 @@
-using Util;
-
 namespace TimeScreensaver
 {
     internal static class Program

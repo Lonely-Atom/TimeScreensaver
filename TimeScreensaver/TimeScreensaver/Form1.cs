@@ -6,14 +6,16 @@ namespace TimeScreensaver
 {
     public partial class TimeScreensaver : Form
     {
+        #region 一些 Flag
         // 是否锁定
         private bool IsLock = false;
-
         // 是否暂停
         private bool IsPause = false;
-
         // 防止程序刚运行时设置字体会出现异常
-        private readonly bool Flag = false;
+        private readonly bool InitFlag = false;
+        // 是否鼠标穿透
+        private bool IsMousePenetration = false;
+        #endregion
 
         #region 记录初始数据，用于缩放时字体自动适应大小
         private readonly float InitWidth;
@@ -30,6 +32,9 @@ namespace TimeScreensaver
         private Point LeftMouseDownPoint;
         #endregion
 
+        // 显示的时间字符串
+        private string? stringTime;
+
         public TimeScreensaver()
         {
             // 读取 appsettings.json 配置文件
@@ -44,7 +49,7 @@ namespace TimeScreensaver
             #endregion
 
             // 防止程序运行时 SetFontSize 会出现异常
-            Flag = true;
+            InitFlag = true;
         }
 
         private void Timer_Tick(object sender, EventArgs e)
@@ -55,58 +60,43 @@ namespace TimeScreensaver
 
         private void TimeScreensaver_KeyDown(object sender, KeyEventArgs e)
         {
-            switch (e.KeyCode)
+            switch (e.KeyData)
             {
-                // ESC：退出
-                case Keys.Escape:
-                    Dispose();
+                // 切换上一个主题
+                case Keys.Shift | Keys.Tab:
+                    if (!IsLocked())
+                        if (--GlobalVariable.Settings.ThemeColorIndex < 1)
+                            GlobalVariable.Settings.ThemeColorIndex = GlobalVariable.Settings.ThemeColors.Count;
                     break;
-                // 空格：暂停
+                // 切换下一个主题
+                case Keys.Tab:
+                    if (!IsLocked())
+                        if (++GlobalVariable.Settings.ThemeColorIndex > GlobalVariable.Settings.ThemeColors.Count)
+                            GlobalVariable.Settings.ThemeColorIndex = 1;
+                    break;
+                // 暂停
                 case Keys.Space:
                     if (IsPause)
                         IsPause = false;
                     else
                         IsPause = true;
                     break;
-                // 回车：切换锁定
-                case Keys.Enter:
-                    #region 已实现无边框状态下的缩放以及拖拽，此功能已不需要，将其改为切换锁定功能
-                    //if (FormBorderStyle == FormBorderStyle.Sizable)
-                    //    FormBorderStyle = FormBorderStyle.None;
-                    //else
-                    //    FormBorderStyle = FormBorderStyle.Sizable;
-                    #endregion
-
-                    if (IsLock)
-                        IsLock = false;
-                    else
+                // 退出
+                case Keys.Escape:
+                    if (!IsLocked())
                     {
-                        IsLock = true;
-                        // 锁定时，鼠标光标恢复默认图标
-                        Cursor = Cursors.Arrow;
-                    }
-                    break;
-                // F11：全屏
-                case Keys.F11:
-                    if (WindowState != FormWindowState.Maximized)
-                    {
-                        FormBorderStyle = FormBorderStyle.None;
-                        // 先设置为 Normal 再设置为 Maximized 为了防止窗口已经最大化时，
-                        // 切换为 FormBorderStyle.None ，会出现任务栏部分未全屏的情况
-                        WindowState = FormWindowState.Maximized;
-                    }
-                    else
-                    {
-                        // 先设置为 Normal 再设置为 Maximized 为了防止窗口已经最大化时，
-                        // 切换为 FormBorderStyle.None ，会出现任务栏部分未全屏的情况
-                        WindowState = FormWindowState.Normal;
-                    }
-                    break;
-                // Tab：切换主题
-                case Keys.Tab:
-                    if (++GlobalVariable.Settings.ThemeColorIndex > GlobalVariable.Settings.ThemeColors.Count)
-                    {
-                        GlobalVariable.Settings.ThemeColorIndex = 1;
+                        // 若为全屏状态，按下 ESC 键为退出全屏，否则为退出程序
+                        if (WindowState == FormWindowState.Maximized)
+                            WindowState = FormWindowState.Normal;
+                        else
+                        {
+                            DialogResult = MessageBox.Show("确定要退出吗？", "提示", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                            if (DialogResult == DialogResult.Yes)
+                            {
+                                Dispose();
+                                Close();
+                            }
+                        }
                     }
                     break;
             }
@@ -114,35 +104,38 @@ namespace TimeScreensaver
 
         private void TimeScreensaver_Paint(object sender, PaintEventArgs e)
         {
-            #region 居中绘制时间到窗口上
-            string stringTime = DateTime.Now.ToString("HH:mm:ss");
-
-            // 字体行高系数
-            double fontRate = 1.2;
-            // 字体 X 轴坐标
-            int fontX = 0;
-            // 字体 Y 轴坐标（乘以行高系数是为了调整字体保持居中）
-            int fontY = (Height - (int)(Font.GetHeight(e.Graphics) * fontRate)) / 2;
-
-            Rectangle Rectangle = new(fontX, fontY, Width, Height);
-
-            StringFormat stringFormat = new()
+            if (!IsPause)
             {
-                Alignment = StringAlignment.Center
-            };
+                #region 居中绘制时间到窗口上
+                stringTime = DateTime.Now.ToString("HH:mm:ss");
 
-            // 使用主题配色设置背景颜色
-            BackColor = ColorTranslator.FromHtml(
-                GlobalVariable.Settings.ThemeColors[GlobalVariable.Settings.ThemeColorIndex - 1].BackColor
-            );
-            // 使用主题配色设置字体颜色
-            Brush brush = new SolidBrush(ColorTranslator.FromHtml(
-                GlobalVariable.Settings.ThemeColors[GlobalVariable.Settings.ThemeColorIndex - 1].FontColor
-            ));
+                // 字体行高系数
+                double fontRate = 1.2;
+                // 字体 X 轴坐标
+                int fontX = 0;
+                // 字体 Y 轴坐标（乘以行高系数是为了调整字体保持居中）
+                int fontY = (Height - (int)(Font.GetHeight(e.Graphics) * fontRate)) / 2;
 
-            e.Graphics.TextRenderingHint = TextRenderingHint.AntiAlias;
-            e.Graphics.DrawString(stringTime, Font, brush, Rectangle, stringFormat);
-            #endregion
+                Rectangle Rectangle = new(fontX, fontY, Width, Height);
+
+                StringFormat stringFormat = new()
+                {
+                    Alignment = StringAlignment.Center
+                };
+
+                // 使用主题配色设置背景颜色
+                BackColor = ColorTranslator.FromHtml(
+                    GlobalVariable.Settings.ThemeColors[GlobalVariable.Settings.ThemeColorIndex - 1].BackColor
+                );
+                // 使用主题配色设置字体颜色
+                Brush brush = new SolidBrush(ColorTranslator.FromHtml(
+                    GlobalVariable.Settings.ThemeColors[GlobalVariable.Settings.ThemeColorIndex - 1].FontColor
+                ));
+
+                e.Graphics.TextRenderingHint = TextRenderingHint.AntiAlias;
+                e.Graphics.DrawString(stringTime, Font, brush, Rectangle, stringFormat);
+                #endregion
+            }
         }
 
         private void TimeScreensaver_MouseDown(object sender, MouseEventArgs e)
@@ -235,7 +228,7 @@ namespace TimeScreensaver
                 }
                 else
                 {
-                    if(IsLeftMouseDown)
+                    if (IsLeftMouseDown)
                         Cursor = Cursors.SizeAll;
                     else
                         Cursor = Cursors.Arrow;
@@ -245,11 +238,29 @@ namespace TimeScreensaver
             }
         }
 
+        private void MenuItem_Click(object sender, EventArgs e)
+        {
+            ToolStripMenuItem toolStripMenuItem = (ToolStripMenuItem)sender;
+            if(toolStripMenuItem.Name != "previousThemeMenuItem" && toolStripMenuItem.Name != "nextThemeMenuItem")
+                toolStripMenuItem.Checked = !toolStripMenuItem.Checked;
+
+            ShortcutKeys(toolStripMenuItem.ShortcutKeys);
+        }
+
+        private void NotifyIcon_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                ShortcutKeys(Keys.Control | Keys.M);
+                minimizeMenuItem.Checked = !minimizeMenuItem.Checked;
+            }
+        }
+
         protected override void OnSizeChanged(EventArgs e)
         {
             #region 窗口大小变化时，根据窗口宽高缩放比例设置字体大小，使字体大小自适应
             // 防止程序运行时 SetFont Size 会出现异常
-            if (!Flag) return;
+            if (!InitFlag) return;
 
             float widthRate = Width / InitWidth;
             float heightRate = Height / InitHeight;
@@ -275,12 +286,12 @@ namespace TimeScreensaver
                     Cursor = Cursors.SizeNWSE;
                     heightRate = Top - MousePosition.Y;
                     widthRate = Left - MousePosition.X;
-                    if (Height + heightRate > InitHeight)
+                    if (Height + heightRate > GlobalVariable.Settings.MinimumHeight)
                     {
                         Height += heightRate;
                         Top -= heightRate;
                     }
-                    if (Width + widthRate > InitWidth)
+                    if (Width + widthRate > GlobalVariable.Settings.MinimumWidth)
                     {
                         Width += widthRate;
                         Left -= widthRate;
@@ -291,12 +302,12 @@ namespace TimeScreensaver
                     Cursor = Cursors.SizeNESW;
                     heightRate = Top - MousePosition.Y;
                     widthRate = MousePosition.X - Left;
-                    if (Height + heightRate > InitHeight)
+                    if (Height + heightRate > GlobalVariable.Settings.MinimumHeight)
                     {
                         Height += heightRate;
                         Top -= heightRate;
                     }
-                    if (widthRate > InitWidth)
+                    if (widthRate > GlobalVariable.Settings.MinimumWidth)
                     {
                         Width = widthRate;
                     }
@@ -306,11 +317,11 @@ namespace TimeScreensaver
                     Cursor = Cursors.SizeNESW;
                     heightRate = MousePosition.Y - Top;
                     widthRate = Left - MousePosition.X;
-                    if (heightRate > InitHeight)
+                    if (heightRate > GlobalVariable.Settings.MinimumHeight)
                     {
                         Height = heightRate;
                     }
-                    if (Width + widthRate > InitWidth)
+                    if (Width + widthRate > GlobalVariable.Settings.MinimumWidth)
                     {
                         Width += widthRate;
                         Left -= widthRate;
@@ -321,11 +332,11 @@ namespace TimeScreensaver
                     Cursor = Cursors.SizeNWSE;
                     heightRate = MousePosition.Y - Top;
                     widthRate = MousePosition.X - Left;
-                    if (heightRate > InitHeight)
+                    if (heightRate > GlobalVariable.Settings.MinimumHeight)
                     {
                         Height = heightRate;
                     }
-                    if (widthRate > InitWidth)
+                    if (widthRate > GlobalVariable.Settings.MinimumWidth)
                     {
                         Width = widthRate;
                     }
@@ -334,7 +345,7 @@ namespace TimeScreensaver
                 case MouseDirection.Top:
                     Cursor = Cursors.SizeNS;
                     heightRate = Top - MousePosition.Y;
-                    if (Height + heightRate > InitHeight)
+                    if (Height + heightRate > GlobalVariable.Settings.MinimumHeight)
                     {
                         Height += heightRate;
                         Top -= heightRate;
@@ -344,7 +355,7 @@ namespace TimeScreensaver
                 case MouseDirection.Left:
                     Cursor = Cursors.SizeWE;
                     widthRate = Left - MousePosition.X;
-                    if (Width + widthRate > InitWidth)
+                    if (Width + widthRate > GlobalVariable.Settings.MinimumWidth)
                     {
                         Width += widthRate;
                         Left -= widthRate;
@@ -354,17 +365,16 @@ namespace TimeScreensaver
                 case MouseDirection.Bottom:
                     Cursor = Cursors.SizeNS;
                     heightRate = MousePosition.Y - Top;
-                    if (heightRate > InitHeight)
+                    if (heightRate > GlobalVariable.Settings.MinimumHeight)
                     {
                         Height = heightRate;
                     }
-                    Height = MousePosition.Y - Top;
                     break;
                 // 右
                 case MouseDirection.Right:
                     Cursor = Cursors.SizeWE;
                     widthRate = MousePosition.X - Left;
-                    if (widthRate > InitWidth)
+                    if (widthRate > GlobalVariable.Settings.MinimumWidth)
                     {
                         Width = widthRate;
                     }
@@ -388,6 +398,111 @@ namespace TimeScreensaver
                 fontSizeNew = Convert.ToSingle(InitFontSize) * heightRate;
 
             Font = new Font(Font.Name, fontSizeNew, Font.Style, Font.Unit);
+        }
+
+        /// <summary>
+        /// 快捷键操作
+        /// </summary>
+        /// <param name="shortcutKey">按下的快捷键</param>
+        private void ShortcutKeys(Keys shortcutKey)
+        {
+            switch (shortcutKey)
+            {
+                // 切换上一个主题
+                case Keys.Control | Keys.Shift | Keys.Tab:
+                    if (!IsLocked())
+                        if (--GlobalVariable.Settings.ThemeColorIndex < 1)
+                            GlobalVariable.Settings.ThemeColorIndex = GlobalVariable.Settings.ThemeColors.Count;
+                    break;
+                // 切换下一个主题
+                case Keys.Control | Keys.Tab:
+                    if (!IsLocked())
+                        if (++GlobalVariable.Settings.ThemeColorIndex > GlobalVariable.Settings.ThemeColors.Count)
+                            GlobalVariable.Settings.ThemeColorIndex = 1;
+                    break;
+                // 复制时间
+                case Keys.Control | Keys.C:
+                    Clipboard.SetData(DataFormats.Text, stringTime);
+                    notifyIcon.ShowBalloonTip(0, "TimeScreensaver", "当前显示时间已复制到剪贴板", ToolTipIcon.Info);
+                    break;
+                // 暂停
+                case Keys.Control | Keys.Space:
+                    if (IsPause)
+                        IsPause = false;
+                    else
+                        IsPause = true;
+                    break;
+                // 全屏
+                case Keys.F11:
+                    if (!IsLocked())
+                    {
+                        if (WindowState != FormWindowState.Maximized)
+                            WindowState = FormWindowState.Maximized;
+                        else
+                            WindowState = FormWindowState.Normal;
+                    }
+                    break;
+                // 锁定窗口
+                case Keys.Control | Keys.L:
+                    if (!IsLock)
+                        // 锁定时，鼠标光标恢复默认图标
+                        Cursor = Cursors.Arrow;
+                    IsLock = !IsLock;
+                    break;
+                // 置顶窗口
+                case Keys.Control | Keys.T:
+                    if (!IsLocked())
+                        TopMost = !TopMost;
+                    break;
+                // 鼠标穿透
+                case Keys.Control | Keys.K:
+                    if (IsMousePenetration)
+                        FormBorderStyle = FormBorderStyle;
+                    else
+                    {
+                        _ = WinHelper.SetWindowLong(Handle, -20, 0x20 | 0x80000);
+                        notifyIcon.ShowBalloonTip(0, "TimeScreensaver", "开启鼠标穿透后无法使用快捷键，需右键托盘中的图标操作", ToolTipIcon.Info);
+                    }
+                    IsMousePenetration = !IsMousePenetration;
+                    break;
+                // 收到托盘
+                case Keys.Control | Keys.M:
+                    if (!IsLocked())
+                    {
+                        if (WindowState == FormWindowState.Minimized)
+                            WindowState = FormWindowState.Normal;
+                        else
+                            WindowState = FormWindowState.Minimized;
+                    }
+                    break;
+                // 关闭
+                case Keys.Alt | Keys.F4:
+                    if (!IsLocked())
+                    {
+                        DialogResult = MessageBox.Show("确定要退出吗？", "提示", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                        if (DialogResult == DialogResult.Yes)
+                        {
+                            Dispose();
+                            Close();
+                        }
+                    }
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 判断是否锁定，如果是锁定状态，则发送提示通知
+        /// </summary>
+        /// <returns>是否锁定</returns>
+        private bool IsLocked()
+        {
+            if (IsLock)
+            {
+                notifyIcon.ShowBalloonTip(0, "TimeScreensaver", "已锁定窗口，请先解锁（Ctrl + L）", ToolTipIcon.Info);
+                return true;
+            }
+            else
+                return false;
         }
     }
 
