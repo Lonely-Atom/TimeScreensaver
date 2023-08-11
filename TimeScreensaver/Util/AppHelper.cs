@@ -24,7 +24,7 @@ namespace Util
 
             GlobalVariable.Settings = ConfigurationRoot
                 .GetSection(RootSection)
-                .Get<SettingsModel>() ?? new SettingsModel();
+                .Get<Settings>() ?? new Settings();
         }
 
         /// <summary>

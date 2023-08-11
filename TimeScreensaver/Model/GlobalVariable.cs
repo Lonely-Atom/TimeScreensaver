@@ -4,6 +4,6 @@ namespace Model
 {
     public static class GlobalVariable
     {
-        public static SettingsModel Settings { get; set; } = default!;
+        public static SystemConfig.Settings Settings { get; set; } = default!;
     }
 }

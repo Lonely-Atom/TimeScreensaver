@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace TimeScreensaver
+namespace Util
 {
     public class WinHelper
     {
