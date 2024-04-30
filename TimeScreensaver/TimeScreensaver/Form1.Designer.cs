@@ -62,6 +62,7 @@ namespace TimeScreensaver
             mousePenetrationMenuItem = new ToolStripMenuItem();
             lockMenuItem = new ToolStripMenuItem();
             minimizeMenuItem = new ToolStripMenuItem();
+            aboutMenuItem = new ToolStripMenuItem();
             exitMenuItem = new ToolStripMenuItem();
             notifyIcon = new NotifyIcon(components);
             contextMenuStrip.SuspendLayout();
@@ -74,9 +75,9 @@ namespace TimeScreensaver
             // 
             // contextMenuStrip
             // 
-            contextMenuStrip.Items.AddRange(new ToolStripItem[] { themeMenuItem, copyTimeMenuItem, printScreenMenuItem, pauseMenuItem, fullScreenMenuItem, topMostMenuItem, transparentBackColorMenuItem, mousePenetrationMenuItem, lockMenuItem, minimizeMenuItem, exitMenuItem });
+            contextMenuStrip.Items.AddRange(new ToolStripItem[] { themeMenuItem, copyTimeMenuItem, printScreenMenuItem, pauseMenuItem, fullScreenMenuItem, topMostMenuItem, transparentBackColorMenuItem, mousePenetrationMenuItem, lockMenuItem, minimizeMenuItem, aboutMenuItem, exitMenuItem });
             contextMenuStrip.Name = "contextMenuStrip";
-            contextMenuStrip.Size = new Size(174, 224);
+            contextMenuStrip.Size = new Size(174, 268);
             // 
             // themeMenuItem
             // 
@@ -152,6 +153,7 @@ namespace TimeScreensaver
             // topMostMenuItem
             // 
             topMostMenuItem.Checked = true;
+            topMostMenuItem.CheckState = CheckState.Checked;
             topMostMenuItem.Name = "topMostMenuItem";
             topMostMenuItem.ShortcutKeys = Keys.Control | Keys.T;
             topMostMenuItem.Size = new Size(173, 22);
@@ -190,6 +192,14 @@ namespace TimeScreensaver
             minimizeMenuItem.Text = "收到托盘";
             minimizeMenuItem.Click += MenuItem_Click;
             // 
+            // aboutMenuItem
+            // 
+            aboutMenuItem.Name = "aboutMenuItem";
+            aboutMenuItem.ShortcutKeys = Keys.F1;
+            aboutMenuItem.Size = new Size(173, 22);
+            aboutMenuItem.Text = "关于";
+            aboutMenuItem.Click += MenuItem_Click;
+            // 
             // exitMenuItem
             // 
             exitMenuItem.Name = "exitMenuItem";
@@ -212,6 +222,7 @@ namespace TimeScreensaver
             ContextMenuStrip = contextMenuStrip;
             DoubleBuffered = true;
             FormBorderStyle = FormBorderStyle.None;
+            Icon = (Icon)resources.GetObject("notifyIcon.Icon");
             KeyPreview = true;
             Name = "TimeScreensaver";
             ShowInTaskbar = false;
@@ -250,6 +261,7 @@ namespace TimeScreensaver
         private ToolStripMenuItem exitMenuItem;
         private NotifyIcon notifyIcon;
         private ToolStripMenuItem minimizeMenuItem;
+        private ToolStripMenuItem aboutMenuItem;
         private ToolStripMenuItem transparentBackColorMenuItem;
     }
 }

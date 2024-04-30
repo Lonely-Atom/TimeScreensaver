@@ -1,7 +1,8 @@
 using Model;
 using Model.SystemConfig;
+using System.Drawing.Drawing2D;
 using System.Drawing.Text;
-using System.Windows.Forms;
+using System.Text;
 using Util;
 
 namespace TimeScreensaver
@@ -199,7 +200,7 @@ namespace TimeScreensaver
                 changeColorModeMenuItem.Text = "切换单色主题模式";
             }
 
-            if(GlobalVariable.Settings.Is24Hour)
+            if (GlobalVariable.Settings.Is24Hour)
                 changeHourModeMenuItem.Text = "切换 12 小时制";
             else
                 changeHourModeMenuItem.Text = "切换 24 小时制";
@@ -293,14 +294,15 @@ namespace TimeScreensaver
             {
                 // 字体抗锯齿
                 e.Graphics.TextRenderingHint = TextRenderingHint.AntiAlias;
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
 
-                if(transparentBackColorMenuItem.Checked)
+                if (transparentBackColorMenuItem.Checked)
                     TransparencyKey = BackColor;
 
                 string timeHyphen = GlobalVariable.Settings.TimeHyphen;
 
                 // 获取当前时间，并格式化为字符串
-                if(GlobalVariable.Settings.Is24Hour)
+                if (GlobalVariable.Settings.Is24Hour)
                     timeString = DateTime.Now.ToString($"HH{timeHyphen}mm{timeHyphen}ss");
                 else
                     timeString = DateTime.Now.ToString($"hh{timeHyphen}mm{timeHyphen}ss");
@@ -626,7 +628,9 @@ namespace TimeScreensaver
                 toolStripMenuItem.Name != "previousThemeMenuItem" &&
                 toolStripMenuItem.Name != "nextThemeMenuItem" &&
                 toolStripMenuItem.Name != "printScreenMenuItem" &&
-                toolStripMenuItem.Name != "copyTimeMenuItem")
+                toolStripMenuItem.Name != "copyTimeMenuItem" &&
+                toolStripMenuItem.Name != "aboutMenuItem" &&
+                toolStripMenuItem.Name != "exitMenuItem")
                 toolStripMenuItem.Checked = !toolStripMenuItem.Checked;
 
             // 调用对应的菜单项功能
@@ -884,12 +888,6 @@ namespace TimeScreensaver
                     }
                     else
                         FormBorderStyle = FormBorderStyle;
-                    #region 【已弃用】此方法开启背景透明后再开启鼠标穿透后再关闭鼠标穿透会报错
-                    //if (IsMousePenetration)
-                    //    notifyIcon.ShowBalloonTip(0, "TimeScreensaver", "开启鼠标穿透后快捷键无法捕获，需右键托盘中的图标操作", ToolTipIcon.Info);
-                    //// 调用 User32.dll 中的方法实现鼠标穿透
-                    //WinHelper.SetMousePenetrate(Handle, IsMousePenetration);
-                    #endregion
                     break;
                 // 锁定窗口
                 case Keys.Control | Keys.L:
@@ -904,6 +902,10 @@ namespace TimeScreensaver
                     {
                         Visible = !Visible;
                     }
+                    break;
+                // 关于
+                case Keys.F1:
+                    ShowAbout();
                     break;
                 // 关闭
                 case Keys.Alt | Keys.F4:
@@ -946,6 +948,23 @@ namespace TimeScreensaver
                 new Rectangle(0, 0, Width, Height)
             );
             Clipboard.SetImage(bitmap);
+        }
+
+        /// <summary>
+        /// 显示关于
+        /// </summary>
+        private void ShowAbout()
+        {
+            StringBuilder sb_msg = new StringBuilder();
+            sb_msg.AppendLine("【软件名】：时间屏保小程序\n");
+
+            sb_msg.AppendLine("【重要提醒】：");
+            sb_msg.AppendLine("    1.本软件为免费提供，作者为「LonelyAtom」。任何索要付费购买此软件的行为均为欺诈。请勿向任何第三方支付费用，以免受到欺骗。");
+            sb_msg.AppendLine("    2.本软件受到版权保护，并且仅限于合法获得许可的用户使用。未经授权的复制、分发或盗版行为将依法追究其法律责任。\n");
+
+            sb_msg.AppendLine("【作者】：LonelyAtom");
+
+            MessageBox.Show(sb_msg.ToString(), "关于", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 
