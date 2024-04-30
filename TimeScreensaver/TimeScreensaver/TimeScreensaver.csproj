@@ -7,7 +7,14 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <StartupObject>TimeScreensaver.Program</StartupObject>
+    <ApplicationIcon>TimeScreensaver.ico</ApplicationIcon>
+    <SignAssembly>False</SignAssembly>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="TimeScreensaver.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Util\Util.csproj" />

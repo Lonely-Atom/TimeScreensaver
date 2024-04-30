@@ -1,96 +1,263 @@
 using Model;
+using Model.SystemConfig;
+using System.Drawing.Drawing2D;
 using System.Drawing.Text;
+using System.Text;
 using Util;
 
 namespace TimeScreensaver
 {
     public partial class TimeScreensaver : Form
     {
-        #region Ò»Ğ© Flag
-        // ÊÇ·ñËø¶¨
+        #region ä¸€äº› Flag
+        // æ˜¯å¦é”å®š
         private bool IsLock = false;
-        // ÊÇ·ñÔİÍ£
+        // æ˜¯å¦æš‚åœ
         private bool IsPause = false;
-        // ·ÀÖ¹³ÌĞò¸ÕÔËĞĞÊ±ÉèÖÃ×ÖÌå»á³öÏÖÒì³£
-        private readonly bool InitFlag = false;
-        // ÊÇ·ñÊó±ê´©Í¸
+        // æ˜¯å¦é¼ æ ‡ç©¿é€
         private bool IsMousePenetration = false;
         #endregion
 
-        #region ¼ÇÂ¼³õÊ¼Êı¾İ£¬ÓÃÓÚËõ·ÅÊ±×ÖÌå×Ô¶¯ÊÊÓ¦´óĞ¡
-        private readonly float InitWidth;
-        private readonly float InitHeight;
-        private readonly float InitFontSize;
+        #region è®°å½•åˆå§‹æ•°æ®
+        // è®°å½•å­—ä½“å¤§å°ï¼Œç”¨äºè°ƒæ•´å­—ä½“å¤§å°
+        private float LastFontSize;
+        // é˜²æ­¢ç¨‹åºåˆšè¿è¡Œæ—¶è®¾ç½®å­—ä½“ä¼šå‡ºç°å¼‚å¸¸
+        private readonly bool InitFlag = false;
         #endregion
 
-        #region Êó±êÍÏ·ÅÒÔ¼°Ëõ·Å
-        // ¼ÇÂ¼Êó±êÊÇ·ñÎª°´ÏÂ×´Ì¬
+        #region é¼ æ ‡æ‹–æ”¾ä»¥åŠç¼©æ”¾
+        // è®°å½•é¼ æ ‡æ˜¯å¦ä¸ºæŒ‰ä¸‹çŠ¶æ€
         private bool IsLeftMouseDown = false;
-        // ¼ÇÂ¼Êó±êÍÏ×§´°¿Ú±ßÔµµÄ·½Ïò
-        private MouseDirection MouseDirection = MouseDirection.None;
-        // Êó±ê°´ÏÂµÄ×ø±ê£¬ÓÃÓÚ¼ÆËãÍÏ·Å´°¿ÚÊ±µÄÎ»ÖÃ
+        // é¼ æ ‡æŒ‰ä¸‹çš„åæ ‡ï¼Œç”¨äºè®¡ç®—æ‹–æ”¾çª—å£æ—¶çš„ä½ç½®
         private Point LeftMouseDownPoint;
+        // è®°å½•é¼ æ ‡æ‹–æ‹½çª—å£è¾¹ç¼˜çš„æ–¹å‘
+        private MouseDirection MouseDirection = MouseDirection.None;
         #endregion
 
-        // ÏÔÊ¾µÄÊ±¼ä×Ö·û´®
-        private string? stringTime;
+        #region æŒ‰é”® Flag
+        // è®°å½• Ctrl é”®æ˜¯å¦ä¸ºæŒ‰ä¸‹çŠ¶æ€
+        bool IsCtrlDown = false;
+        // è®°å½• Shift é”®æ˜¯å¦ä¸ºæŒ‰ä¸‹çŠ¶æ€
+        bool IsShiftDown = false;
+        // è®°å½• Alt é”®æ˜¯å¦ä¸ºæŒ‰ä¸‹çŠ¶æ€
+        bool IsAltDown = false;
+        #endregion
+
+        #region æ—¶é—´å­—ç¬¦ä¸²
+        // æ˜¾ç¤ºçš„æ—¶é—´å­—ç¬¦ä¸²
+        private string? timeString;
+        #endregion
 
         public TimeScreensaver()
         {
-            // ¶ÁÈ¡ appsettings.json ÅäÖÃÎÄ¼ş
+            // è¯»å– appsettings.json é…ç½®æ–‡ä»¶
             AppHelper.GetSettings();
 
             InitializeComponent();
 
-            #region ¼ÇÂ¼³õÊ¼Êı¾İ£¬ÓÃÓÚËõ·ÅÊ±×ÖÌå×Ô¶¯ÊÊÓ¦´óĞ¡
-            InitWidth = Width;
-            InitHeight = Height;
-            InitFontSize = Font.Size;
+            LastFontSize = GlobalVariable.Settings.FontSize;
+
+            // é˜²æ­¢ç¨‹åºåˆšè¿è¡Œæ—¶è®¾ç½®å­—ä½“ä¼šå‡ºç°å¼‚å¸¸
+            InitFlag = true;
+
+            #region è‹¥ä¸»é¢˜é…ç½®ä¸å­˜åœ¨ï¼Œåˆ™è‡ªåŠ¨åˆ›å»ºé»˜è®¤çš„åˆå§‹ä¸»é¢˜
+            if (GlobalVariable.Settings.ThemeColors == null)
+                GlobalVariable.Settings.ThemeColors = new List<ThemeColor>();
+            if (GlobalVariable.Settings.ThemeColors.Count == 0)
+            {
+                GlobalVariable.Settings.ThemeColors.Add(
+                    new ThemeColor
+                    {
+                        BackColor = "#000000",
+                        FontColor = "#FFFFFF"
+                    }
+                );
+                GlobalVariable.Settings.ThemeColors.Add(
+                    new ThemeColor
+                    {
+                        BackColor = "#FFFFFF",
+                        FontColor = "#000000"
+                    }
+                );
+                GlobalVariable.Settings.ThemeColors.Add(
+                    new ThemeColor
+                    {
+                        BackColor = "#212A3E",
+                        FontColor = "#9BA4B5"
+                    }
+                );
+            }
+
+            if (GlobalVariable.Settings.Themes == null)
+                GlobalVariable.Settings.Themes = new List<ThemeConfig>();
+            if (GlobalVariable.Settings.Themes.Count == 0)
+            {
+                GlobalVariable.Settings.Themes.Add(
+                    new ThemeConfig
+                    {
+                        BackColor = "#212A3E",
+                        Font = new FontConfig
+                        {
+                            Name = "æ€æºé»‘ä½“",
+                            Style = FontStyle.Bold,
+                        },
+                        Date = new DateConfig
+                        {
+                            Enable = false,
+                            YearColor = "#FF0000",
+                            MonthColor = "#00FF00",
+                            DayColor = "#0000FF",
+                            HyphenColor = "#FFFFFF",
+                        },
+                        Time = new TimeConfig
+                        {
+                            HourColor = "#848B99",
+                            MinuteColor = "#AFBACC",
+                            SecondColor = "#DBE8FF",
+                            HyphenColor = "#C2B69F",
+                        }
+                    }
+                );
+                GlobalVariable.Settings.Themes.Add(
+                    new ThemeConfig
+                    {
+                        BackColor = "#6951B0",
+                        Font = new FontConfig
+                        {
+                            Name = "STHupo",
+                            Style = FontStyle.Bold,
+                        },
+                        Date = new DateConfig
+                        {
+                            Enable = false,
+                            YearColor = "#FF0000",
+                            MonthColor = "#00FF00",
+                            DayColor = "#0000FF",
+                            HyphenColor = "#FFFFFF",
+                        },
+                        Time = new TimeConfig
+                        {
+                            HourColor = "#FEBBCC",
+                            MinuteColor = "#FFCCCC",
+                            SecondColor = "#FFDDCC",
+                            HyphenColor = "#FFEECC",
+                        }
+                    }
+                );
+                GlobalVariable.Settings.Themes.Add(
+                    new ThemeConfig
+                    {
+                        BackColor = "#3C5E99",
+                        Font = new FontConfig
+                        {
+                            Name = "STCaiyun",
+                            Style = FontStyle.Bold,
+                        },
+                        Date = new DateConfig
+                        {
+                            Enable = false,
+                            YearColor = "#FF0000",
+                            MonthColor = "#00FF00",
+                            DayColor = "#0000FF",
+                            HyphenColor = "#FFFFFF",
+                        },
+                        Time = new TimeConfig
+                        {
+                            HourColor = "#7EAA92",
+                            MinuteColor = "#9ED2BE",
+                            SecondColor = "#C8E4B2",
+                            HyphenColor = "#FFD9B7",
+                        }
+                    }
+                );
+            }
             #endregion
 
-            // ·ÀÖ¹³ÌĞòÔËĞĞÊ± SetFontSize »á³öÏÖÒì³£
-            InitFlag = true;
-        }
+            #region åˆå§‹åŒ–åŠ è½½é…ç½®
+            Location = GlobalVariable.Settings.Location;
+            Opacity = GlobalVariable.Settings.Opacity;
+            TransparencyKey = GlobalVariable.Settings.IsTransparent ? BackColor : Color.Empty;
 
-        private void Timer_Tick(object sender, EventArgs e)
-        {
-            if (!IsPause)
-                Refresh();
+            ClientSize = new Size(
+                GlobalVariable.Settings.Width,
+                GlobalVariable.Settings.Height
+            );
+
+            if (GlobalVariable.Settings.IsSingleColor)
+            {
+                if (GlobalVariable.Settings.ThemeIndex > GlobalVariable.Settings.ThemeColors.Count)
+                {
+                    GlobalVariable.Settings.ThemeIndex = 1;
+                }
+                changeColorModeMenuItem.Text = "åˆ‡æ¢å¤šè‰²ä¸»é¢˜æ¨¡å¼ï¼ˆå®éªŒåŠŸèƒ½ï¼‰";
+            }
+            else
+            {
+                if (GlobalVariable.Settings.ThemeIndex > GlobalVariable.Settings.Themes.Count)
+                {
+                    GlobalVariable.Settings.ThemeIndex = 1;
+                }
+                changeColorModeMenuItem.Text = "åˆ‡æ¢å•è‰²ä¸»é¢˜æ¨¡å¼";
+            }
+
+            if (GlobalVariable.Settings.Is24Hour)
+                changeHourModeMenuItem.Text = "åˆ‡æ¢ 12 å°æ—¶åˆ¶";
+            else
+                changeHourModeMenuItem.Text = "åˆ‡æ¢ 24 å°æ—¶åˆ¶";
+
+            if (GlobalVariable.Settings.IsTransparent)
+            {
+                transparentBackColorMenuItem.Checked = true;
+            }
+            #endregion
         }
 
         private void TimeScreensaver_KeyDown(object sender, KeyEventArgs e)
         {
+            switch (e.KeyCode)
+            {
+                // Ctrl é”®
+                case Keys.ControlKey:
+                    IsCtrlDown = true;
+                    break;
+                // Shift é”®
+                case Keys.ShiftKey:
+                    IsShiftDown = true;
+                    break;
+                // Alt é”®
+                case Keys.Menu:
+                    IsAltDown = true;
+                    break;
+            }
+
             switch (e.KeyData)
             {
-                // ÇĞ»»ÉÏÒ»¸öÖ÷Ìâ
+                // åˆ‡æ¢ä¸Šä¸€ä¸ªä¸»é¢˜
                 case Keys.Shift | Keys.Tab:
-                    if (!IsLocked())
-                        if (--GlobalVariable.Settings.ThemeColorIndex < 1)
-                            GlobalVariable.Settings.ThemeColorIndex = GlobalVariable.Settings.ThemeColors.Count;
+                    ShortcutKeys(Keys.Control | Keys.Shift | Keys.Tab);
                     break;
-                // ÇĞ»»ÏÂÒ»¸öÖ÷Ìâ
+                // åˆ‡æ¢ä¸‹ä¸€ä¸ªä¸»é¢˜
                 case Keys.Tab:
-                    if (!IsLocked())
-                        if (++GlobalVariable.Settings.ThemeColorIndex > GlobalVariable.Settings.ThemeColors.Count)
-                            GlobalVariable.Settings.ThemeColorIndex = 1;
+                    ShortcutKeys(Keys.Control | Keys.Tab);
                     break;
-                // ÔİÍ£
+                // æš‚åœ
                 case Keys.Space:
-                    if (IsPause)
-                        IsPause = false;
-                    else
-                        IsPause = true;
+                    ShortcutKeys(Keys.Control | Keys.Space);
+                    pauseMenuItem.Checked = !pauseMenuItem.Checked;
                     break;
-                // ÍË³ö
+                // é€€å‡º
                 case Keys.Escape:
                     if (!IsLocked())
                     {
-                        // ÈôÎªÈ«ÆÁ×´Ì¬£¬°´ÏÂ ESC ¼üÎªÍË³öÈ«ÆÁ£¬·ñÔòÎªÍË³ö³ÌĞò
+                        // è‹¥ä¸ºå…¨å±çŠ¶æ€ï¼ŒæŒ‰ä¸‹ ESC é”®ä¸ºé€€å‡ºå…¨å±ï¼Œå¦åˆ™ä¸ºé€€å‡ºç¨‹åº
                         if (WindowState == FormWindowState.Maximized)
+                        {
                             WindowState = FormWindowState.Normal;
+                            fullScreenMenuItem.Checked = !fullScreenMenuItem.Checked;
+                        }
                         else
                         {
-                            DialogResult = MessageBox.Show("È·¶¨ÒªÍË³öÂğ£¿", "ÌáÊ¾", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                            DialogResult = MessageBox.Show("ç¡®å®šè¦é€€å‡ºå—ï¼Ÿ", "æç¤º", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                             if (DialogResult == DialogResult.Yes)
                             {
                                 Dispose();
@@ -102,39 +269,154 @@ namespace TimeScreensaver
             }
         }
 
+        private void TimeScreensaver_KeyUp(object sender, KeyEventArgs e)
+        {
+            switch (e.KeyCode)
+            {
+                // Ctrl é”®
+                case Keys.ControlKey:
+                    IsCtrlDown = false;
+                    break;
+                // Shift é”®
+                case Keys.ShiftKey:
+                    IsShiftDown = false;
+                    break;
+                // Alt é”®
+                case Keys.Menu:
+                    IsAltDown = false;
+                    break;
+            }
+        }
+
         private void TimeScreensaver_Paint(object sender, PaintEventArgs e)
         {
             if (!IsPause)
             {
-                #region ¾ÓÖĞ»æÖÆÊ±¼äµ½´°¿ÚÉÏ
-                stringTime = DateTime.Now.ToString("HH:mm:ss");
-
-                // ×ÖÌåĞĞ¸ßÏµÊı
-                double fontRate = 1.2;
-                // ×ÖÌå X Öá×ø±ê
-                int fontX = 0;
-                // ×ÖÌå Y Öá×ø±ê£¨³ËÒÔĞĞ¸ßÏµÊıÊÇÎªÁËµ÷Õû×ÖÌå±£³Ö¾ÓÖĞ£©
-                int fontY = (Height - (int)(Font.GetHeight(e.Graphics) * fontRate)) / 2;
-
-                Rectangle Rectangle = new(fontX, fontY, Width, Height);
-
-                StringFormat stringFormat = new()
-                {
-                    Alignment = StringAlignment.Center
-                };
-
-                // Ê¹ÓÃÖ÷ÌâÅäÉ«ÉèÖÃ±³¾°ÑÕÉ«
-                BackColor = ColorTranslator.FromHtml(
-                    GlobalVariable.Settings.ThemeColors[GlobalVariable.Settings.ThemeColorIndex - 1].BackColor
-                );
-                // Ê¹ÓÃÖ÷ÌâÅäÉ«ÉèÖÃ×ÖÌåÑÕÉ«
-                Brush brush = new SolidBrush(ColorTranslator.FromHtml(
-                    GlobalVariable.Settings.ThemeColors[GlobalVariable.Settings.ThemeColorIndex - 1].FontColor
-                ));
-
+                // å­—ä½“æŠ—é”¯é½¿
                 e.Graphics.TextRenderingHint = TextRenderingHint.AntiAlias;
-                e.Graphics.DrawString(stringTime, Font, brush, Rectangle, stringFormat);
-                #endregion
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
+                if (transparentBackColorMenuItem.Checked)
+                    TransparencyKey = BackColor;
+
+                string timeHyphen = GlobalVariable.Settings.TimeHyphen;
+
+                // è·å–å½“å‰æ—¶é—´ï¼Œå¹¶æ ¼å¼åŒ–ä¸ºå­—ç¬¦ä¸²
+                if (GlobalVariable.Settings.Is24Hour)
+                    timeString = DateTime.Now.ToString($"HH{timeHyphen}mm{timeHyphen}ss");
+                else
+                    timeString = DateTime.Now.ToString($"hh{timeHyphen}mm{timeHyphen}ss");
+
+                if (GlobalVariable.Settings.IsSingleColor)
+                {
+                    #region å­—ä½“å•è‰²
+                    // ä½¿ç”¨ä¸»é¢˜é…è‰²è®¾ç½®èƒŒæ™¯é¢œè‰²
+                    BackColor = ColorTranslator.FromHtml(
+                        GlobalVariable.Settings.ThemeColors[GlobalVariable.Settings.ThemeIndex - 1].BackColor
+                    );
+
+                    Font = new Font(
+                        "æ€æºé»‘ä½“",
+                        Font.Size,
+                        FontStyle.Bold,
+                        GraphicsUnit.Pixel
+                    );
+
+                    Brush brush = new SolidBrush(ColorTranslator.FromHtml(
+                        GlobalVariable.Settings.ThemeColors[GlobalVariable.Settings.ThemeIndex - 1].FontColor
+                    ));
+
+                    Rectangle rectangle = new(0, 0, Width, Height);
+
+                    StringFormat stringFormat = new()
+                    {
+                        Alignment = StringAlignment.Center,
+                        LineAlignment = StringAlignment.Center
+                    };
+
+                    // ç»˜åˆ¶
+                    e.Graphics.DrawString(timeString, Font, brush, rectangle, stringFormat);
+                    #endregion
+                }
+                else
+                {
+                    #region å­—ä½“å¤šè‰²
+                    #region ä¸»é¢˜é…ç½®
+                    int themeIndex = GlobalVariable.Settings.ThemeIndex - 1;
+                    ThemeConfig themeConfig = GlobalVariable.Settings.Themes[themeIndex];
+                    DateConfig dateConfig = themeConfig.Date;
+                    TimeConfig timeConfig = themeConfig.Time;
+                    #endregion
+
+                    // ä½¿ç”¨ä¸»é¢˜é…è‰²è®¾ç½®èƒŒæ™¯é¢œè‰²
+                    BackColor = ColorTranslator.FromHtml(themeConfig.BackColor);
+                    // å®šä¹‰å­—ä½“
+                    Font = new Font(
+                        themeConfig.Font.Name,
+                        Font.Size,
+                        themeConfig.Font.Style,
+                        GraphicsUnit.Pixel
+                    );
+
+                    StringFormat stringFormat = new()
+                    {
+                        LineAlignment = StringAlignment.Center
+                    };
+
+                    // æŒ‰åˆ†éš”ç¬¦åˆ†è£‚æ—¶é—´
+                    string[] times = timeString.Split(timeHyphen);
+
+                    #region ä¸åŒéƒ¨åˆ†çš„å­—ç¬¦å®½åº¦
+                    float hourWidth = TextRenderer.MeasureText(e.Graphics, times[0], Font, new Size(0, 0), TextFormatFlags.NoPadding).Width;
+                    float minuteWidth = TextRenderer.MeasureText(e.Graphics, times[1], Font, new Size(0, 0), TextFormatFlags.NoPadding).Width;
+                    float secondWidth = TextRenderer.MeasureText(e.Graphics, times[2], Font, new Size(0, 0), TextFormatFlags.NoPadding).Width;
+                    float hyphenWidth = TextRenderer.MeasureText(e.Graphics, timeHyphen, Font, new Size(0, 0), TextFormatFlags.NoPadding).Width;
+                    #endregion
+
+                    #region ä¸åŒéƒ¨åˆ†çš„ç¬”åˆ·
+                    Brush hourBrush = new SolidBrush(ColorTranslator.FromHtml(
+                        timeConfig.HourColor
+                    ));
+                    Brush minuteBrush = new SolidBrush(ColorTranslator.FromHtml(
+                        timeConfig.MinuteColor
+                    ));
+                    Brush secondBrush = new SolidBrush(ColorTranslator.FromHtml(
+                        timeConfig.SecondColor
+                    ));
+                    Brush hyphenBrush = new SolidBrush(ColorTranslator.FromHtml(
+                        timeConfig.HyphenColor
+                    ));
+                    #endregion
+
+                    #region ç»˜åˆ¶
+                    float startX = (Width - hourWidth - hyphenWidth - minuteWidth - hyphenWidth - secondWidth) / 2;
+                    // æ‰‹åŠ¨ä¿®æ­£åç§»ï¼ŒåŸå› ä¸æ˜
+                    startX -= 10;
+                    // è®¡ç®—å­—ç¬¦ä¸²çš„å®½åº¦
+                    RectangleF rectangle = new(startX, 0, Width, Height);
+                    e.Graphics.DrawString(times[0], Font, hourBrush, rectangle, stringFormat);
+
+                    startX += hourWidth;
+                    rectangle.X = (int)startX;
+                    e.Graphics.DrawString(timeHyphen, Font, hyphenBrush, rectangle, stringFormat);
+
+                    startX += hyphenWidth;
+                    rectangle.X = (int)startX;
+                    e.Graphics.DrawString(times[1], Font, minuteBrush, rectangle, stringFormat);
+
+                    startX += minuteWidth;
+                    rectangle.X = (int)startX;
+                    e.Graphics.DrawString(timeHyphen, Font, hyphenBrush, rectangle, stringFormat);
+
+                    startX += hyphenWidth;
+                    rectangle.X = (int)startX;
+                    e.Graphics.DrawString(times[2], Font, secondBrush, rectangle, stringFormat);
+                    #endregion
+                    #endregion
+                }
+
+                // æ¸å˜è‰²
+                // Brush brush = new LinearGradientBrush(rectangle, Color.Purple, Color.Yellow, LinearGradientMode.Horizontal);
             }
         }
 
@@ -142,15 +424,16 @@ namespace TimeScreensaver
         {
             switch (e.Button)
             {
-                // Êó±ê×ó¼ü
+                // é¼ æ ‡å·¦é”®
                 case MouseButtons.Left:
                     IsLeftMouseDown = true;
+                    // è®°å½•é¼ æ ‡å·¦é”®æŒ‰ä¸‹çš„åæ ‡
                     LeftMouseDownPoint = e.Location;
                     break;
-                // Êó±êÓÒ¼ü£ºTodo
+                // é¼ æ ‡å³é”®ï¼šTodoï¼ˆæˆªå›¾ï¼‰
                 case MouseButtons.Right:
                     break;
-                // Êó±êÖĞ¼ü£ºTodo
+                // é¼ æ ‡ä¸­é”®ï¼šTodoï¼ˆèƒŒæ™¯é€æ˜ï¼‰
                 case MouseButtons.Middle:
                     break;
             }
@@ -158,97 +441,205 @@ namespace TimeScreensaver
 
         private void TimeScreensaver_MouseUp(object sender, MouseEventArgs e)
         {
-            IsLeftMouseDown = false;
-            MouseDirection = MouseDirection.None;
+            switch (e.Button)
+            {
+                // é¼ æ ‡å·¦é”®
+                case MouseButtons.Left:
+                    IsLeftMouseDown = false;
+                    // å°†é¼ æ ‡æ‹–æ‹½çª—å£è¾¹ç¼˜çš„æ–¹å‘ç½®ç©º
+                    MouseDirection = MouseDirection.None;
+                    break;
+                // é¼ æ ‡å³é”®ï¼šTodo
+                case MouseButtons.Right:
+                    break;
+                // é¼ æ ‡ä¸­é”®ï¼šTodo
+                case MouseButtons.Middle:
+                    break;
+            }
         }
 
         private void TimeScreensaver_MouseMove(object sender, MouseEventArgs e)
         {
             if (!IsLock)
             {
-                #region ÍÏ×§Ëõ·Å´°¿ÚÒÔ¼°ÒÆ¶¯´°¿Ú
+                #region æ‹–æ‹½ç¼©æ”¾çª—å£ä»¥åŠç§»åŠ¨çª—å£
                 if (IsLeftMouseDown)
                 {
-                    // ÍÏ×§Ëõ·Å´°¿Ú
+                    // æ‹–æ‹½ç¼©æ”¾çª—å£
                     if (MouseDirection != MouseDirection.None)
                     {
-                        //Éè¶¨ºÃ·½Ïòºó£¬µ÷ÓÃÏÂÃæ·½·¨£¬¸Ä±ä´°Ìå´óĞ¡  
+                        //è®¾å®šå¥½æ–¹å‘åï¼Œè°ƒç”¨ä¸‹é¢æ–¹æ³•ï¼Œæ”¹å˜çª—ä½“å¤§å°  
                         ResizeForm();
                         return;
                     }
-                    // ÍÏ×§ÒÆ¶¯´°¿Ú
+                    // æ‹–æ‹½ç§»åŠ¨çª—å£
                     else
                     {
+                        Cursor = Cursors.SizeAll;
                         Left += e.X - LeftMouseDownPoint.X;
                         Top += e.Y - LeftMouseDownPoint.Y;
                     }
                 }
-                #endregion
-
-                #region Êó±êÔÚ´°¿Ú±ßÔµÏÔÊ¾ÎªËõ·ÅÍ¼±ê£¬²¢¼ÇÂ¼Êó±ê·½Ïò£¬ÓÃÓÚÍÏ×§Ëõ·Å´°¿Ú
-                if (e.Location.X <= 5 && e.Location.Y <= 5)
-                {
-                    Cursor = Cursors.SizeNWSE;
-                    MouseDirection = MouseDirection.TopLeft;
-                }
-                else if (e.Location.X >= Width - 5 && e.Location.Y <= 5)
-                {
-                    Cursor = Cursors.SizeNESW;
-                    MouseDirection = MouseDirection.TopRight;
-                }
-                else if (e.Location.X <= 5 && e.Location.Y >= Height - 5)
-                {
-                    Cursor = Cursors.SizeNESW;
-                    MouseDirection = MouseDirection.BottomLeft;
-                }
-                else if (e.Location.X >= Width - 5 && e.Location.Y >= Height - 5)
-                {
-                    Cursor = Cursors.SizeNWSE;
-                    MouseDirection = MouseDirection.BottomRight;
-                }
-                else if (e.Location.Y <= 5)
-                {
-                    Cursor = Cursors.SizeNS;
-                    MouseDirection = MouseDirection.Top;
-                }
-                else if (e.Location.X <= 5)
-                {
-                    Cursor = Cursors.SizeWE;
-                    MouseDirection = MouseDirection.Left;
-                }
-                else if (e.Location.Y >= Height - 5)
-                {
-                    Cursor = Cursors.SizeNS;
-                    MouseDirection = MouseDirection.Bottom;
-                }
-                else if (e.Location.X >= Width - 5)
-                {
-                    Cursor = Cursors.SizeWE;
-                    MouseDirection = MouseDirection.Right;
-                }
                 else
                 {
-                    if (IsLeftMouseDown)
-                        Cursor = Cursors.SizeAll;
+                    #region é¼ æ ‡åœ¨çª—å£è¾¹ç¼˜æ˜¾ç¤ºä¸ºç¼©æ”¾å›¾æ ‡ï¼Œå¹¶è®°å½•é¼ æ ‡æ–¹å‘ï¼Œç”¨äºæ‹–æ‹½ç¼©æ”¾çª—å£
+                    if (e.Location.X <= 5 && e.Location.Y <= 5)
+                    {
+                        Cursor = Cursors.SizeNWSE;
+                        MouseDirection = MouseDirection.TopLeft;
+                    }
+                    else if (e.Location.X >= Width - 5 && e.Location.Y <= 5)
+                    {
+                        Cursor = Cursors.SizeNESW;
+                        MouseDirection = MouseDirection.TopRight;
+                    }
+                    else if (e.Location.X <= 5 && e.Location.Y >= Height - 5)
+                    {
+                        Cursor = Cursors.SizeNESW;
+                        MouseDirection = MouseDirection.BottomLeft;
+                    }
+                    else if (e.Location.X >= Width - 5 && e.Location.Y >= Height - 5)
+                    {
+                        Cursor = Cursors.SizeNWSE;
+                        MouseDirection = MouseDirection.BottomRight;
+                    }
+                    else if (e.Location.Y <= 5)
+                    {
+                        Cursor = Cursors.SizeNS;
+                        MouseDirection = MouseDirection.Top;
+                    }
+                    else if (e.Location.X <= 5)
+                    {
+                        Cursor = Cursors.SizeWE;
+                        MouseDirection = MouseDirection.Left;
+                    }
+                    else if (e.Location.Y >= Height - 5)
+                    {
+                        Cursor = Cursors.SizeNS;
+                        MouseDirection = MouseDirection.Bottom;
+                    }
+                    else if (e.Location.X >= Width - 5)
+                    {
+                        Cursor = Cursors.SizeWE;
+                        MouseDirection = MouseDirection.Right;
+                    }
                     else
+                    {
                         Cursor = Cursors.Arrow;
-                    MouseDirection = MouseDirection.None;
+                        MouseDirection = MouseDirection.None;
+                    }
+                    #endregion
                 }
                 #endregion
             }
         }
 
+        private void TimeScreensaver_MouseWheel(object sender, MouseEventArgs e)
+        {
+            // æŒ‰ä½ Ctrl é”® + é¼ æ ‡æ»šè½®ï¼šç¼©æ”¾å­—ä½“å¤§å°
+            if (IsCtrlDown)
+            {
+                // ç¼©æ”¾æ¯”ä¾‹ä¸º 1 ä¸ªå­—å·
+                float value = e.Delta > 0 ? 1F : -1F;
+                float fontSizeNew = Font.Size + value;
+
+                // å­—ä½“æœ€å°é™åˆ¶ä¸º 1
+                if (fontSizeNew < 1)
+                    fontSizeNew = 1;
+
+                // é‡æ–°è®¾ç½®å­—ä½“å¤§å°
+                Font = new(Font.Name, fontSizeNew, Font.Style, Font.Unit);
+                LastFontSize = fontSizeNew;
+            }
+
+            // æŒ‰ä½ Shift é”® + é¼ æ ‡æ»šè½®ï¼šç­‰æ¯”ä¸­å¿ƒç¼©æ”¾çª—å£å¤§å°
+            if (IsShiftDown)
+            {
+                // ç¼©æ”¾æ¯”ä¾‹ä¸º 5%
+                double rate = e.Delta > 0 ? 0.05D : -0.05D;
+
+                #region å®½é«˜ç¼©æ”¾å€¼
+                int widthRate = (int)(Width * rate);
+                int heightRate = (int)(Height * rate);
+                #endregion
+
+                #region é¿å…å•æ•°ï¼Œä¿æŒä¸­å¿ƒç¼©æ”¾
+                widthRate += widthRate % 2 == 0 ? 0 : 1;
+                heightRate += heightRate % 2 == 0 ? 0 : 1;
+                #endregion
+
+                #region ç¼©æ”¾å®½é«˜ï¼Œå¹¶è°ƒæ•´åæ ‡ï¼Œä¿æŒä¸­å¿ƒç¼©æ”¾
+                Width += widthRate;
+                Height += heightRate;
+                Left -= widthRate / 2;
+                Top -= heightRate / 2;
+                #endregion
+            }
+
+            // æŒ‰ä½ Alt é”® + é¼ æ ‡æ»šè½®ï¼šè°ƒæ•´çª—å£é€æ˜åº¦
+            if (IsAltDown)
+            {
+                // è°ƒæ•´æ¯”ä¾‹ä¸º 1% 
+                double rate = e.Delta > 0 ? 0.01D : -0.01D;
+                double newOpacity = Opacity + rate;
+
+                // é€æ˜åº¦æœ€å¤§é™åˆ¶ä¸º 100%
+                if (newOpacity >= 1)
+                    Opacity = 1D;
+                // é€æ˜åº¦æœ€å°é™åˆ¶ä¸º 1%
+                else if (newOpacity <= 0)
+                    Opacity = 0.01D;
+                // è®¾ç½®æ–°é€æ˜åº¦
+                else
+                    Opacity = newOpacity;
+            }
+        }
+
+        private void TimeScreensaver_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            ShortcutKeys(Keys.F11);
+        }
+
+        private void TimeScreensaver_Resize(object sender, EventArgs e)
+        {
+            #region çª—å£å¤§å°å˜åŒ–æ—¶ï¼Œæ ¹æ®çª—å£å®½é«˜ç¼©æ”¾æ¯”ä¾‹è®¾ç½®å­—ä½“å¤§å°ï¼Œä½¿å­—ä½“å¤§å°è‡ªé€‚åº”
+            // é˜²æ­¢ç¨‹åºè¿è¡Œæ—¶ SetFont Size ä¼šå‡ºç°å¼‚å¸¸
+            if (!InitFlag) return;
+
+            float widthRate = Width / (float)GlobalVariable.Settings.Width;
+            float heightRate = Height / (float)GlobalVariable.Settings.Height;
+
+            SetFontSize(widthRate, heightRate);
+            #endregion
+        }
+
+        private void Timer_Tick(object sender, EventArgs e)
+        {
+            if (!IsPause)
+                Refresh();
+        }
+
         private void MenuItem_Click(object sender, EventArgs e)
         {
+            // ç‚¹å‡»çš„èœå•é¡¹
             ToolStripMenuItem toolStripMenuItem = (ToolStripMenuItem)sender;
-            if(toolStripMenuItem.Name != "previousThemeMenuItem" && toolStripMenuItem.Name != "nextThemeMenuItem")
+            if (toolStripMenuItem.Name != "changeHourModeMenuItem" &&
+                toolStripMenuItem.Name != "changeColorModeMenuItem" &&
+                toolStripMenuItem.Name != "previousThemeMenuItem" &&
+                toolStripMenuItem.Name != "nextThemeMenuItem" &&
+                toolStripMenuItem.Name != "printScreenMenuItem" &&
+                toolStripMenuItem.Name != "copyTimeMenuItem" &&
+                toolStripMenuItem.Name != "aboutMenuItem" &&
+                toolStripMenuItem.Name != "exitMenuItem")
                 toolStripMenuItem.Checked = !toolStripMenuItem.Checked;
 
+            // è°ƒç”¨å¯¹åº”çš„èœå•é¡¹åŠŸèƒ½
             ShortcutKeys(toolStripMenuItem.ShortcutKeys);
         }
 
         private void NotifyIcon_MouseClick(object sender, MouseEventArgs e)
         {
+            // é¼ æ ‡å·¦é”®ç‚¹å‡»å°æ‰˜ç›˜æ”¶åˆ°æ‰˜ç›˜
             if (e.Button == MouseButtons.Left)
             {
                 ShortcutKeys(Keys.Control | Keys.M);
@@ -256,183 +647,212 @@ namespace TimeScreensaver
             }
         }
 
-        protected override void OnSizeChanged(EventArgs e)
-        {
-            #region ´°¿Ú´óĞ¡±ä»¯Ê±£¬¸ù¾İ´°¿Ú¿í¸ßËõ·Å±ÈÀıÉèÖÃ×ÖÌå´óĞ¡£¬Ê¹×ÖÌå´óĞ¡×ÔÊÊÓ¦
-            // ·ÀÖ¹³ÌĞòÔËĞĞÊ± SetFont Size »á³öÏÖÒì³£
-            if (!InitFlag) return;
-
-            float widthRate = Width / InitWidth;
-            float heightRate = Height / InitHeight;
-
-            SetFontSize(widthRate, heightRate, this);
-            #endregion
-
-            base.OnSizeChanged(e);
-        }
-
         /// <summary>
-        /// µ÷Õû´°¿Ú´óĞ¡
+        /// è°ƒæ•´çª—å£å¤§å°
         /// </summary>
         private void ResizeForm()
         {
-            int heightRate;
-            int widthRate;
-            // °´ÕÕÍÏ×§·½Ïòµ÷Õû´°¿Ú´óĞ¡£¬ÇÒÏŞÖÆ´°¿Ú´óĞ¡²»¿É±È³õÊ¼´°¿ÚĞ¡
+            int heightResize;
+            int widthResize;
+            // æŒ‰ç…§æ‹–æ‹½æ–¹å‘è°ƒæ•´çª—å£å¤§å°ï¼Œä¸”é™åˆ¶çª—å£å¤§å°ä¸å¯æ¯”åˆå§‹çª—å£å°
             switch (MouseDirection)
             {
-                // ×óÉÏ
+                // å·¦ä¸Š
                 case MouseDirection.TopLeft:
                     Cursor = Cursors.SizeNWSE;
-                    heightRate = Top - MousePosition.Y;
-                    widthRate = Left - MousePosition.X;
-                    if (Height + heightRate > GlobalVariable.Settings.MinimumHeight)
+                    heightResize = Top - MousePosition.Y;
+                    widthResize = Left - MousePosition.X;
+                    if (Height + heightResize > GlobalVariable.Settings.MinimumHeight)
                     {
-                        Height += heightRate;
-                        Top -= heightRate;
+                        Height += heightResize;
+                        Top -= heightResize;
                     }
-                    if (Width + widthRate > GlobalVariable.Settings.MinimumWidth)
+                    if (Width + widthResize > GlobalVariable.Settings.MinimumWidth)
                     {
-                        Width += widthRate;
-                        Left -= widthRate;
+                        Width += widthResize;
+                        Left -= widthResize;
                     }
                     break;
-                // ÓÒÉÏ
+                // å³ä¸Š
                 case MouseDirection.TopRight:
                     Cursor = Cursors.SizeNESW;
-                    heightRate = Top - MousePosition.Y;
-                    widthRate = MousePosition.X - Left;
-                    if (Height + heightRate > GlobalVariable.Settings.MinimumHeight)
+                    heightResize = Top - MousePosition.Y;
+                    widthResize = MousePosition.X - Left;
+                    if (Height + heightResize > GlobalVariable.Settings.MinimumHeight)
                     {
-                        Height += heightRate;
-                        Top -= heightRate;
+                        Height += heightResize;
+                        Top -= heightResize;
                     }
-                    if (widthRate > GlobalVariable.Settings.MinimumWidth)
+                    if (widthResize > GlobalVariable.Settings.MinimumWidth)
                     {
-                        Width = widthRate;
+                        Width = widthResize;
                     }
                     break;
-                // ×óÏÂ
+                // å·¦ä¸‹
                 case MouseDirection.BottomLeft:
                     Cursor = Cursors.SizeNESW;
-                    heightRate = MousePosition.Y - Top;
-                    widthRate = Left - MousePosition.X;
-                    if (heightRate > GlobalVariable.Settings.MinimumHeight)
+                    heightResize = MousePosition.Y - Top;
+                    widthResize = Left - MousePosition.X;
+                    if (heightResize > GlobalVariable.Settings.MinimumHeight)
                     {
-                        Height = heightRate;
+                        Height = heightResize;
                     }
-                    if (Width + widthRate > GlobalVariable.Settings.MinimumWidth)
+                    if (Width + widthResize > GlobalVariable.Settings.MinimumWidth)
                     {
-                        Width += widthRate;
-                        Left -= widthRate;
+                        Width += widthResize;
+                        Left -= widthResize;
                     }
                     break;
-                // ÓÒÏÂ
+                // å³ä¸‹
                 case MouseDirection.BottomRight:
                     Cursor = Cursors.SizeNWSE;
-                    heightRate = MousePosition.Y - Top;
-                    widthRate = MousePosition.X - Left;
-                    if (heightRate > GlobalVariable.Settings.MinimumHeight)
+                    heightResize = MousePosition.Y - Top;
+                    widthResize = MousePosition.X - Left;
+                    if (heightResize > GlobalVariable.Settings.MinimumHeight)
                     {
-                        Height = heightRate;
+                        Height = heightResize;
                     }
-                    if (widthRate > GlobalVariable.Settings.MinimumWidth)
+                    if (widthResize > GlobalVariable.Settings.MinimumWidth)
                     {
-                        Width = widthRate;
+                        Width = widthResize;
                     }
                     break;
-                // ÉÏ
+                // ä¸Š
                 case MouseDirection.Top:
                     Cursor = Cursors.SizeNS;
-                    heightRate = Top - MousePosition.Y;
-                    if (Height + heightRate > GlobalVariable.Settings.MinimumHeight)
+                    heightResize = Top - MousePosition.Y;
+                    if (Height + heightResize > GlobalVariable.Settings.MinimumHeight)
                     {
-                        Height += heightRate;
-                        Top -= heightRate;
+                        Height += heightResize;
+                        Top -= heightResize;
                     }
                     break;
-                // ×ó
+                // å·¦
                 case MouseDirection.Left:
                     Cursor = Cursors.SizeWE;
-                    widthRate = Left - MousePosition.X;
-                    if (Width + widthRate > GlobalVariable.Settings.MinimumWidth)
+                    widthResize = Left - MousePosition.X;
+                    if (Width + widthResize > GlobalVariable.Settings.MinimumWidth)
                     {
-                        Width += widthRate;
-                        Left -= widthRate;
+                        Width += widthResize;
+                        Left -= widthResize;
                     }
                     break;
-                // ÏÂ
+                // ä¸‹
                 case MouseDirection.Bottom:
                     Cursor = Cursors.SizeNS;
-                    heightRate = MousePosition.Y - Top;
-                    if (heightRate > GlobalVariable.Settings.MinimumHeight)
+                    heightResize = MousePosition.Y - Top;
+                    if (heightResize > GlobalVariable.Settings.MinimumHeight)
                     {
-                        Height = heightRate;
+                        Height = heightResize;
                     }
                     break;
-                // ÓÒ
+                // å³
                 case MouseDirection.Right:
                     Cursor = Cursors.SizeWE;
-                    widthRate = MousePosition.X - Left;
-                    if (widthRate > GlobalVariable.Settings.MinimumWidth)
+                    widthResize = MousePosition.X - Left;
+                    if (widthResize > GlobalVariable.Settings.MinimumWidth)
                     {
-                        Width = widthRate;
+                        Width = widthResize;
                     }
                     break;
             }
         }
 
         /// <summary>
-        /// ¸ù¾İËõ·Å±ÈÀıÉèÖÃ×ÖÌå´óĞ¡
+        /// æ ¹æ®ç¼©æ”¾æ¯”ä¾‹è®¾ç½®å­—ä½“å¤§å°
         /// </summary>
-        /// <param name="widthRate">¿í¶ÈËõ·Å±ÈÀı</param>
-        /// <param name="heightRate">¸ß¶ÈËõ·Å±ÈÀı</param>
-        /// <param name="baseControl">¸¸¿Ø¼ş</param>
-        private void SetFontSize(float widthRate, float heightRate, Control baseControl)
+        /// <param name="widthRate">å®½åº¦ç¼©æ”¾æ¯”ä¾‹</param>
+        /// <param name="heightRate">é«˜åº¦ç¼©æ”¾æ¯”ä¾‹</param>
+        private void SetFontSize(float widthRate, float heightRate)
         {
-            Single fontSizeNew;
+            float fontSizeNew;
 
             if (widthRate < heightRate)
-                fontSizeNew = Convert.ToSingle(InitFontSize) * widthRate;
+                fontSizeNew = LastFontSize * widthRate;
             else
-                fontSizeNew = Convert.ToSingle(InitFontSize) * heightRate;
+                fontSizeNew = LastFontSize * heightRate;
 
-            Font = new Font(Font.Name, fontSizeNew, Font.Style, Font.Unit);
+            // å­—ä½“æœ€å°é™åˆ¶ä¸º 1
+            if (fontSizeNew < 1)
+                fontSizeNew = 1;
+
+            Font = new(Font.Name, fontSizeNew, Font.Style, Font.Unit);
         }
 
         /// <summary>
-        /// ¿ì½İ¼ü²Ù×÷
+        /// å¿«æ·é”®æ“ä½œ
         /// </summary>
-        /// <param name="shortcutKey">°´ÏÂµÄ¿ì½İ¼ü</param>
+        /// <param name="shortcutKey">æŒ‰ä¸‹çš„å¿«æ·é”®</param>
         private void ShortcutKeys(Keys shortcutKey)
         {
             switch (shortcutKey)
             {
-                // ÇĞ»»ÉÏÒ»¸öÖ÷Ìâ
+                // åˆ‡æ¢å°æ—¶åˆ¶æ¨¡å¼ï¼ˆ12å°æ—¶åˆ¶æ¨¡å¼/24å°æ—¶åˆ¶æ¨¡å¼ï¼‰
+                case Keys.Control | Keys.W:
+                    GlobalVariable.Settings.Is24Hour = !GlobalVariable.Settings.Is24Hour;
+                    notifyIcon.ShowBalloonTip(0, "TimeScreensaver", $"å·²{changeHourModeMenuItem.Text}", ToolTipIcon.Info);
+                    if (GlobalVariable.Settings.Is24Hour)
+                        changeHourModeMenuItem.Text = "åˆ‡æ¢ 12 å°æ—¶åˆ¶";
+                    else
+                        changeHourModeMenuItem.Text = "åˆ‡æ¢ 24 å°æ—¶åˆ¶";
+                    break;
+                // åˆ‡æ¢ä¸»é¢˜æ¨¡å¼ï¼ˆå•è‰²æ¨¡å¼/å¤šè‰²æ¨¡å¼ï¼‰
+                case Keys.Control | Keys.Q:
+                    if (!IsLocked())
+                    {
+                        GlobalVariable.Settings.IsSingleColor = !GlobalVariable.Settings.IsSingleColor;
+                        GlobalVariable.Settings.ThemeIndex = 1;
+                        notifyIcon.ShowBalloonTip(0, "TimeScreensaver", $"å·²{changeColorModeMenuItem.Text}", ToolTipIcon.Info);
+                        if (GlobalVariable.Settings.IsSingleColor)
+                            changeColorModeMenuItem.Text = "åˆ‡æ¢å¤šè‰²ä¸»é¢˜æ¨¡å¼ï¼ˆå®éªŒåŠŸèƒ½ï¼‰";
+                        else
+                            changeColorModeMenuItem.Text = "åˆ‡æ¢å•è‰²ä¸»é¢˜æ¨¡å¼";
+                    }
+                    break;
+                // åˆ‡æ¢ä¸Šä¸€ä¸ªä¸»é¢˜
                 case Keys.Control | Keys.Shift | Keys.Tab:
                     if (!IsLocked())
-                        if (--GlobalVariable.Settings.ThemeColorIndex < 1)
-                            GlobalVariable.Settings.ThemeColorIndex = GlobalVariable.Settings.ThemeColors.Count;
+                        if (--GlobalVariable.Settings.ThemeIndex < 1)
+                        {
+                            if (GlobalVariable.Settings.IsSingleColor)
+                                GlobalVariable.Settings.ThemeIndex = GlobalVariable.Settings.ThemeColors.Count;
+                            else
+                                GlobalVariable.Settings.ThemeIndex = GlobalVariable.Settings.Themes.Count;
+                        }
                     break;
-                // ÇĞ»»ÏÂÒ»¸öÖ÷Ìâ
+                // åˆ‡æ¢ä¸‹ä¸€ä¸ªä¸»é¢˜
                 case Keys.Control | Keys.Tab:
                     if (!IsLocked())
-                        if (++GlobalVariable.Settings.ThemeColorIndex > GlobalVariable.Settings.ThemeColors.Count)
-                            GlobalVariable.Settings.ThemeColorIndex = 1;
+                        if (GlobalVariable.Settings.IsSingleColor)
+                        {
+                            if (++GlobalVariable.Settings.ThemeIndex > GlobalVariable.Settings.ThemeColors.Count)
+                                GlobalVariable.Settings.ThemeIndex = 1;
+                        }
+                        else
+                        {
+                            if (++GlobalVariable.Settings.ThemeIndex > GlobalVariable.Settings.Themes.Count)
+                                GlobalVariable.Settings.ThemeIndex = 1;
+                        }
                     break;
-                // ¸´ÖÆÊ±¼ä
+                // å¤åˆ¶æ—¶é—´
                 case Keys.Control | Keys.C:
-                    Clipboard.SetData(DataFormats.Text, stringTime);
-                    notifyIcon.ShowBalloonTip(0, "TimeScreensaver", "µ±Ç°ÏÔÊ¾Ê±¼äÒÑ¸´ÖÆµ½¼ôÌù°å", ToolTipIcon.Info);
+                    // å°†å½“å‰æ˜¾ç¤ºçš„æ—¶é—´æ–‡æœ¬æ·»åŠ åˆ°å‰ªè´´æ¿
+                    Clipboard.SetData(DataFormats.Text, timeString);
+                    notifyIcon.ShowBalloonTip(0, "TimeScreensaver", "å½“å‰æ˜¾ç¤ºæ—¶é—´å·²å¤åˆ¶åˆ°å‰ªè´´æ¿", ToolTipIcon.Info);
                     break;
-                // ÔİÍ£
+                // æˆªå›¾
+                case Keys.Control | Keys.X:
+                    ScreenshotControl();
+                    notifyIcon.ShowBalloonTip(0, "TimeScreensaver", "æˆªå›¾å·²å¤åˆ¶åˆ°å‰ªè´´æ¿", ToolTipIcon.Info);
+                    break;
+                // æš‚åœ
                 case Keys.Control | Keys.Space:
                     if (IsPause)
                         IsPause = false;
                     else
                         IsPause = true;
                     break;
-                // È«ÆÁ
+                // å…¨å±
                 case Keys.F11:
                     if (!IsLocked())
                     {
@@ -442,44 +862,56 @@ namespace TimeScreensaver
                             WindowState = FormWindowState.Normal;
                     }
                     break;
-                // Ëø¶¨´°¿Ú
-                case Keys.Control | Keys.L:
-                    if (!IsLock)
-                        // Ëø¶¨Ê±£¬Êó±ê¹â±ê»Ö¸´Ä¬ÈÏÍ¼±ê
-                        Cursor = Cursors.Arrow;
-                    IsLock = !IsLock;
-                    break;
-                // ÖÃ¶¥´°¿Ú
+                // ç½®é¡¶çª—å£
                 case Keys.Control | Keys.T:
                     if (!IsLocked())
                         TopMost = !TopMost;
                     break;
-                // Êó±ê´©Í¸
-                case Keys.Control | Keys.K:
-                    if (IsMousePenetration)
-                        FormBorderStyle = FormBorderStyle;
+                // èƒŒæ™¯é€æ˜
+                case Keys.Control | Keys.J:
+                    if (TransparencyKey != BackColor)
+                        TransparencyKey = BackColor;
                     else
-                    {
-                        _ = WinHelper.SetWindowLong(Handle, -20, 0x20 | 0x80000);
-                        notifyIcon.ShowBalloonTip(0, "TimeScreensaver", "¿ªÆôÊó±ê´©Í¸ºóÎŞ·¨Ê¹ÓÃ¿ì½İ¼ü£¬ĞèÓÒ¼üÍĞÅÌÖĞµÄÍ¼±ê²Ù×÷", ToolTipIcon.Info);
-                    }
-                    IsMousePenetration = !IsMousePenetration;
+                        TransparencyKey = default;
+                    // é˜²æ­¢å¼€å…³èƒŒæ™¯é€æ˜ä¼šå¯¼è‡´é¼ æ ‡ç©¿é€å¤±æ•ˆ
+                    if (IsMousePenetration)
+                        WinHelper.SetMousePenetrate(Handle, IsMousePenetration);
                     break;
-                // ÊÕµ½ÍĞÅÌ
+                // é¼ æ ‡ç©¿é€
+                case Keys.Control | Keys.K:
+                    IsMousePenetration = !IsMousePenetration;
+                    if (IsMousePenetration)
+                    {
+                        notifyIcon.ShowBalloonTip(0, "TimeScreensaver", "å¼€å¯é¼ æ ‡ç©¿é€åå¿«æ·é”®æ— æ³•æ•è·ï¼Œéœ€å³é”®æ‰˜ç›˜ä¸­çš„å›¾æ ‡æ“ä½œ", ToolTipIcon.Info);
+                        // è°ƒç”¨ User32.dll ä¸­çš„æ–¹æ³•å®ç°é¼ æ ‡ç©¿é€
+                        WinHelper.SetMousePenetrate(Handle, IsMousePenetration);
+                    }
+                    else
+                        FormBorderStyle = FormBorderStyle;
+                    break;
+                // é”å®šçª—å£
+                case Keys.Control | Keys.L:
+                    if (!IsLock)
+                        // é”å®šæ—¶ï¼Œé¼ æ ‡å…‰æ ‡æ¢å¤é»˜è®¤å›¾æ ‡
+                        Cursor = Cursors.Arrow;
+                    IsLock = !IsLock;
+                    break;
+                // æ”¶åˆ°æ‰˜ç›˜
                 case Keys.Control | Keys.M:
                     if (!IsLocked())
                     {
-                        if (WindowState == FormWindowState.Minimized)
-                            WindowState = FormWindowState.Normal;
-                        else
-                            WindowState = FormWindowState.Minimized;
+                        Visible = !Visible;
                     }
                     break;
-                // ¹Ø±Õ
+                // å…³äº
+                case Keys.F1:
+                    ShowAbout();
+                    break;
+                // å…³é—­
                 case Keys.Alt | Keys.F4:
                     if (!IsLocked())
                     {
-                        DialogResult = MessageBox.Show("È·¶¨ÒªÍË³öÂğ£¿", "ÌáÊ¾", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                        DialogResult = MessageBox.Show("ç¡®å®šè¦é€€å‡ºå—ï¼Ÿ", "æç¤º", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                         if (DialogResult == DialogResult.Yes)
                         {
                             Dispose();
@@ -491,43 +923,73 @@ namespace TimeScreensaver
         }
 
         /// <summary>
-        /// ÅĞ¶ÏÊÇ·ñËø¶¨£¬Èç¹ûÊÇËø¶¨×´Ì¬£¬Ôò·¢ËÍÌáÊ¾Í¨Öª
+        /// åˆ¤æ–­æ˜¯å¦é”å®šï¼Œå¦‚æœæ˜¯é”å®šçŠ¶æ€ï¼Œåˆ™å‘é€æç¤ºé€šçŸ¥
         /// </summary>
-        /// <returns>ÊÇ·ñËø¶¨</returns>
+        /// <returns>æ˜¯å¦é”å®š</returns>
         private bool IsLocked()
         {
             if (IsLock)
             {
-                notifyIcon.ShowBalloonTip(0, "TimeScreensaver", "ÒÑËø¶¨´°¿Ú£¬ÇëÏÈ½âËø£¨Ctrl + L£©", ToolTipIcon.Info);
+                notifyIcon.ShowBalloonTip(0, "TimeScreensaver", "å·²é”å®šçª—å£ï¼Œè¯·å…ˆè§£é”ï¼ˆCtrl + Lï¼‰", ToolTipIcon.Info);
                 return true;
             }
             else
                 return false;
         }
+
+        /// <summary>
+        /// æˆªå›¾
+        /// </summary>
+        private void ScreenshotControl()
+        {
+            Bitmap bitmap = new Bitmap(Width, Height);
+            DrawToBitmap(
+                bitmap,
+                new Rectangle(0, 0, Width, Height)
+            );
+            Clipboard.SetImage(bitmap);
+        }
+
+        /// <summary>
+        /// æ˜¾ç¤ºå…³äº
+        /// </summary>
+        private void ShowAbout()
+        {
+            StringBuilder sb_msg = new StringBuilder();
+            sb_msg.AppendLine("ã€è½¯ä»¶åã€‘ï¼šæ—¶é—´å±ä¿å°ç¨‹åº\n");
+
+            sb_msg.AppendLine("ã€é‡è¦æé†’ã€‘ï¼š");
+            sb_msg.AppendLine("    1.æœ¬è½¯ä»¶ä¸ºå…è´¹æä¾›ï¼Œä½œè€…ä¸ºã€ŒLonelyAtomã€ã€‚ä»»ä½•ç´¢è¦ä»˜è´¹è´­ä¹°æ­¤è½¯ä»¶çš„è¡Œä¸ºå‡ä¸ºæ¬ºè¯ˆã€‚è¯·å‹¿å‘ä»»ä½•ç¬¬ä¸‰æ–¹æ”¯ä»˜è´¹ç”¨ï¼Œä»¥å…å—åˆ°æ¬ºéª—ã€‚");
+            sb_msg.AppendLine("    2.æœ¬è½¯ä»¶å—åˆ°ç‰ˆæƒä¿æŠ¤ï¼Œå¹¶ä¸”ä»…é™äºåˆæ³•è·å¾—è®¸å¯çš„ç”¨æˆ·ä½¿ç”¨ã€‚æœªç»æˆæƒçš„å¤åˆ¶ã€åˆ†å‘æˆ–ç›—ç‰ˆè¡Œä¸ºå°†ä¾æ³•è¿½ç©¶å…¶æ³•å¾‹è´£ä»»ã€‚\n");
+
+            sb_msg.AppendLine("ã€ä½œè€…ã€‘ï¼šLonelyAtom");
+
+            MessageBox.Show(sb_msg.ToString(), "å…³äº", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
     }
 
     /// <summary>
-    /// Êó±êÍÏ×§·½Ïò
+    /// é¼ æ ‡æ‹–æ‹½æ–¹å‘
     /// </summary>
     public enum MouseDirection
     {
-        // ÎŞ·½Ïò
+        // æ— æ–¹å‘
         None,
-        // ÉÏ
+        // ä¸Š
         Top,
-        // ÏÂ
+        // ä¸‹
         Bottom,
-        // ×ó
+        // å·¦
         Left,
-        // ÓÒ
+        // å³
         Right,
-        // ×óÉÏ
+        // å·¦ä¸Š
         TopLeft,
-        // ÓÒÉÏ
+        // å³ä¸Š
         TopRight,
-        // ×óÏÂ
+        // å·¦ä¸‹
         BottomLeft,
-        // ÓÒÏÂ
+        // å³ä¸‹
         BottomRight
     }
 }
